@@ -1,27 +1,29 @@
 name: Android CI
 
 on:
-  # Trigger the workflow on push to the master branch
   push:
     branches: 
-      - master  # Change this to your branch name if needed
-  # Trigger the workflow on pull request to the master branch
+      - master
   pull_request:
     branches: 
-      - master  # Change this to your branch name if needed
-  # Trigger the workflow manually (workflow_dispatch)
+      - master
   workflow_dispatch:
 
 jobs:
   build:
-    # The job runs on the latest version of Ubuntu
     runs-on: ubuntu-latest
 
     steps:
-    # Check out the repository
     - uses: actions/checkout@v2
 
-    # Set up JDK 17
+    - name: Check for skip commit
+      id: skip_check
+      run: |
+        if git log -1 --pretty=%B | grep -q '\[skip ci\]'; then
+          echo "Skipping build"
+          exit 0
+        fi
+
     - name: Set up JDK 17
       uses: actions/setup-java@v1
       with:
@@ -29,22 +31,22 @@ jobs:
         java-version: '17'
         cache: gradle
 
-    # Install Android SDK
     - name: Install Android SDK
       uses: android-actions/setup-android@v2
       with:
         api-level: 30
         build-tools: 30.0.3
 
-    # Grant execute permission for gradlew
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    # Build the project with Gradle
     - name: Build with Gradle
       run: ./gradlew assembleDebug
 
-    # Upload the APK file as an artifact
+    # List the directory contents to verify the APK is present
+    - name: List APK Directory
+      run: ls -la app/build/outputs/apk/debug
+
     - name: Upload APK
       uses: actions/upload-artifact@v3
       with:
@@ -52,33 +54,35 @@ jobs:
         path: app/build/outputs/apk/debug/app-debug.apk
 
   release:
-    # This job depends on the build job
     needs: build
     runs-on: ubuntu-latest
 
     steps:
-    # Check out the repository
     - uses: actions/checkout@v2
 
-    # Create a release
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}  # Use PAT_TOKEN instead of GITHUB_TOKEN
+        GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
       with:
         tag_name: 'v1.0.${{ github.run_number }}'
         release_name: 'Release v1.0.${{ github.run_number }}'
         draft: false
         prerelease: false
 
-    # Upload the APK to the release
+    - name: Download APK Artifact
+      uses: actions/download-artifact@v2
+      with:
+        name: app-debug
+        path: .
+
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}  # Use PAT_TOKEN instead of GITHUB_TOKEN
+        GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: app/build/outputs/apk/debug/app-debug.apk
+        asset_path: app-debug.apk
         asset_name: app-debug.apk
         asset_content_type: application/vnd.android.package-archive
