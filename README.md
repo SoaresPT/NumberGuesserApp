@@ -4,7 +4,11 @@ This is a simple game where users try to guess a randomly generated number withi
 
 ## Screenshot
 
-![Screenshot of Number Guesser App](Screenshot.png)
+
+<figure>
+  <img src="Screenshot.png" alt="Screenshot of Number Guesser App" width="50%" />
+  <figcaption>Screenshot of Number Guesser App</figcaption>
+</figure>
 
 ## How to Use
 
