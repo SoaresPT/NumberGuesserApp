@@ -1,6 +1,7 @@
 package com.example.numberguesser
 
-class NumberGuesser(range : IntRange) {
+
+class NumberGuesser(val range: IntRange) {
     private val secret = range.random()
     var guesses = mutableListOf<Int>()
         private set
